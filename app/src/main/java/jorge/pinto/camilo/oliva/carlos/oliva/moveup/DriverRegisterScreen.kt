@@ -1,4 +1,5 @@
 package jorge.pinto.camilo.oliva.carlos.oliva.moveup
+
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +42,12 @@ fun DriverRegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+
+    val routes = listOf("R1", "R2", "R3", "R4", "R5")
+
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
 
     Scaffold(
         topBar = {
@@ -46,16 +55,10 @@ fun DriverRegisterScreen(
                 title = { Text("Registro de Conductor", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFF9800)
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF2196F3))
             )
         }
     ) { paddingValues ->
@@ -67,16 +70,9 @@ fun DriverRegisterScreen(
                 .verticalScroll(scrollState)
                 .padding(24.dp)
         ) {
-            Text(
-                text = "Información Personal",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF424242)
-            )
-
+            Text("Información Personal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nombre Completo
             OutlinedTextField(
                 value = fullName,
                 onValueChange = { fullName = it },
@@ -84,17 +80,10 @@ fun DriverRegisterScreen(
                 label = { Text("Nombre completo") },
                 leadingIcon = { Icon(Icons.Default.Person, null) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -103,17 +92,10 @@ fun DriverRegisterScreen(
                 leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Teléfono
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
@@ -122,26 +104,13 @@ fun DriverRegisterScreen(
                 leadingIcon = { Icon(Icons.Default.Phone, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Información de Conductor",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF424242)
-            )
-
+            Text("Información de Conductor", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Número de Licencia
             OutlinedTextField(
                 value = licenseNumber,
                 onValueChange = { licenseNumber = it },
@@ -149,17 +118,10 @@ fun DriverRegisterScreen(
                 label = { Text("Número de licencia") },
                 leadingIcon = { Icon(Icons.Default.Badge, null) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Número de Bus
             OutlinedTextField(
                 value = busNumber,
                 onValueChange = { busNumber = it },
@@ -167,19 +129,9 @@ fun DriverRegisterScreen(
                 label = { Text("Número de bus") },
                 leadingIcon = { Icon(Icons.Default.DirectionsBus, null) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Ruta Asignada
-            var expanded by remember { mutableStateOf(false) }
-            val routes = listOf("R1", "R2", "R3", "R4", "R5")
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -189,23 +141,13 @@ fun DriverRegisterScreen(
                     value = routeAssigned,
                     onValueChange = {},
                     readOnly = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
                     label = { Text("Ruta asignada") },
                     leadingIcon = { Icon(Icons.Default.Route, null) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedBorderColor = Color(0xFFFF9800)
-                    ),
                     shape = RoundedCornerShape(12.dp)
                 )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     routes.forEach { route ->
                         DropdownMenuItem(
                             text = { Text(route) },
@@ -219,17 +161,9 @@ fun DriverRegisterScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Seguridad",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF424242)
-            )
-
+            Text("Seguridad", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Contraseña
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -247,17 +181,10 @@ fun DriverRegisterScreen(
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Confirmar Contraseña
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
@@ -275,17 +202,10 @@ fun DriverRegisterScreen(
                 visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFFFF9800)
-                ),
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Botón Registrarse
             Button(
                 onClick = {
                     when {
@@ -298,24 +218,41 @@ fun DriverRegisterScreen(
                         password.isEmpty() -> Toast.makeText(context, "Ingresa una contraseña", Toast.LENGTH_SHORT).show()
                         password != confirmPassword -> Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                         else -> {
-                            Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
-                            onRegisterSuccess()
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        val userId = auth.currentUser?.uid
+                                        val driverData = hashMapOf(
+                                            "fullName" to fullName,
+                                            "email" to email,
+                                            "phone" to phone,
+                                            "licenseNumber" to licenseNumber,
+                                            "busNumber" to busNumber,
+                                            "routeAssigned" to routeAssigned
+                                        )
+                                        if (userId != null) {
+                                            db.collection("drivers").document(userId)
+                                                .set(driverData)
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
+                                                    onRegisterSuccess()
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Toast.makeText(context, "Error al guardar datos: ${e.message}", Toast.LENGTH_LONG).show()
+                                                }
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Error al crear usuario: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF9800)
-                ),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(
-                    text = "Registrarse",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Registrarse", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
