@@ -1,96 +1,124 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.auth.FirebaseAuth
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.HomeScreen
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.LoginScreen
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.RegisterScreen
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.SplashScreen
-
-sealed class Screen(val route: String) {
-    object Splash : Screen("splash")
-    object Login : Screen("login")
-    object Register : Screen("register")
-    object Home : Screen("home")
-}
+import androidx.navigation.navArgument
+import jorge.pinto.camilo.oliva.carlos.oliva.moveup.screens.*
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    var startDestination by remember { mutableStateOf<String?>(null) }
-    val auth = FirebaseAuth.getInstance()
 
-    LaunchedEffect(Unit) {
-        startDestination = if (auth.currentUser != null) {
-            Screen.Home.route
-        } else {
-            Screen.Splash.route
+    NavHost(
+        navController = navController,
+        startDestination = "splash"
+    ) {
+        // Splash Screen
+        composable("splash") {
+            SplashScreen(
+                onNavigateToMainMenu = {
+                    navController.navigate("main") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
         }
-    }
 
-    if (startDestination != null) {
-        NavHost(
-            navController = navController,
-            startDestination = startDestination!!
-        ) {
-            composable(Screen.Splash.route) {
-                SplashScreen(
-                    onNavigateToLogin = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Splash.route) { inclusive = true }
-                        }
-                    },
-                    onNavigateToHome = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Splash.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
+        // Main Menu
+        composable("main") {
+            MainMenuScreen(
+                onNavigateToSearch = { navController.navigate("search") },
+                onNavigateToMap = { navController.navigate("map") },
+                onNavigateToMyRoutes = { navController.navigate("myroutes") },
+                onNavigateToReport = { navController.navigate("report") },
+                onNavigateToDriverLogin = { navController.navigate("driver_login") }
+            )
+        }
 
-            composable(Screen.Login.route) {
-                LoginScreen(
-                    onNavigateToRegister = {
-                        navController.navigate(Screen.Register.route)
-                    },
-                    onNavigateToHome = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
+        // Search Route
+        composable("search") {
+            SearchRouteScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onRouteClick = { routeId ->
+                    navController.navigate("route_detail/$routeId")
+                }
+            )
+        }
 
-            composable(Screen.Register.route) {
-                RegisterScreen(
-                    onNavigateToLogin = {
-                        navController.popBackStack()
-                    },
-                    onNavigateToHome = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Register.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
+        // Route Detail
+        composable(
+            route = "route_detail/{routeId}",
+            arguments = listOf(navArgument("routeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val routeId = backStackEntry.arguments?.getString("routeId") ?: ""
+            RouteDetailScreen(
+                routeId = routeId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
-            composable(Screen.Home.route) {
-                HomeScreen(
-                    onLogout = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
-                        }
+        // Map Full Screen
+        composable("map") {
+            MapFullScreen(
+                onNavigateBack = { navController.popBackStack() },
+                selectedRouteId = null
+            )
+        }
+
+        // My Routes
+        composable("myroutes") {
+            MyRoutesScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onRouteClick = { routeId ->
+                    navController.navigate("route_detail/$routeId")
+                }
+            )
+        }
+
+        // Report Screen
+        composable("report") {
+            ReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Driver Login
+        composable("driver_login") {
+            DriverLoginScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToRegister = { navController.navigate("driver_register") },
+                onLoginSuccess = {
+                    navController.navigate("driver_dashboard") {
+                        popUpTo("driver_login") { inclusive = true }
                     }
-                )
-            }
+                }
+            )
+        }
+
+        // Driver Register
+        composable("driver_register") {
+            DriverRegisterScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onRegisterSuccess = {
+                    navController.navigate("driver_dashboard") {
+                        popUpTo("driver_login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Driver Dashboard
+        composable("driver_dashboard") {
+            DriverDashboardScreen(
+                onLogout = {
+                    navController.navigate("main") {
+                        popUpTo("driver_dashboard") { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
