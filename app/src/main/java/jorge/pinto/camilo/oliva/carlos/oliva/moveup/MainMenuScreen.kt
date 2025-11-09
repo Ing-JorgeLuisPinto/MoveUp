@@ -1,4 +1,4 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup.screens
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

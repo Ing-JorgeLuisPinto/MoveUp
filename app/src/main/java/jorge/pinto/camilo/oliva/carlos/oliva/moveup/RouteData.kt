@@ -1,4 +1,4 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup.data
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import com.google.android.gms.maps.model.LatLng
 

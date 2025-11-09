@@ -1,4 +1,4 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup.screens
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import android.widget.Toast
 import androidx.compose.foundation.background

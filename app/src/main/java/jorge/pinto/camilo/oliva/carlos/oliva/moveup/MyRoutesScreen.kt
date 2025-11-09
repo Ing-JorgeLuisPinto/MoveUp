@@ -1,4 +1,4 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup.screens
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,8 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.data.BusRoute
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.data.getAllRoutes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

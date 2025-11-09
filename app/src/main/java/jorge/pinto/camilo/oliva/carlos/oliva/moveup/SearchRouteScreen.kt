@@ -1,4 +1,4 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup.screens
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,8 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.data.BusRoute
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.data.getAllRoutes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,6 +143,9 @@ private fun RouteCard(
     route: BusRoute,
     onClick: () -> Unit
 ) {
+    var isSaving by remember { mutableStateOf(false) }
+    var saveSuccess by remember { mutableStateOf<Boolean?>(null) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -184,7 +185,7 @@ private fun RouteCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Origen y Destino
+            // Origen y destino
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     verticalAlignment = Alignment.Top,
@@ -242,22 +243,70 @@ private fun RouteCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                InfoChip(
-                    icon = Icons.Default.Schedule,
-                    text = route.duration
-                )
-                InfoChip(
-                    icon = Icons.Default.AccessTime,
-                    text = route.frequency
-                )
-                InfoChip(
-                    icon = Icons.Default.AttachMoney,
-                    text = route.fare
-                )
+                InfoChip(icon = Icons.Default.Schedule, text = route.duration)
+                InfoChip(icon = Icons.Default.AccessTime, text = route.frequency)
+                InfoChip(icon = Icons.Default.AttachMoney, text = route.fare)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 🔘 Botón de guardar
+            Button(
+                onClick = {
+                    isSaving = true
+                    saveRouteToFirestore(route) { success ->
+                        isSaving = false
+                        saveSuccess = success
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(45.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.BookmarkAdd,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Guardar ruta", color = Color.White)
+                }
+            }
+
+            // ✅ Mensaje visual de confirmación
+            saveSuccess?.let { success ->
+                val message = if (success) "Ruta guardada correctamente" else "Error al guardar ruta"
+                val bgColor = if (success) Color(0xFFD0F0C0) else Color(0xFFFFCDD2)
+                val textColor = if (success) Color(0xFF2E7D32) else Color(0xFFC62828)
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = bgColor,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = message,
+                        color = textColor,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun StatusChip(status: String) {

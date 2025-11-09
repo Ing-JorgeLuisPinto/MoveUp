@@ -29,7 +29,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun TransportePublicoTheme(
+fun Theme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

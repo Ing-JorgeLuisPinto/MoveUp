@@ -7,14 +7,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.navigation.AppNavigation
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.ui.theme.TransportePublicoTheme
+import jorge.pinto.camilo.oliva.carlos.oliva.moveup.ui.theme.Theme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            TransportePublicoTheme {
+            Theme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

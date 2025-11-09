@@ -1,12 +1,10 @@
-package jorge.pinto.camilo.oliva.carlos.oliva.moveup.navigation
-
+package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.screens.*
 
 @Composable
 fun AppNavigation() {
