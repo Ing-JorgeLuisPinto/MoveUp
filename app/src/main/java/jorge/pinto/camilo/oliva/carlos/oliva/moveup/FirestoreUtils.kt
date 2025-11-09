@@ -43,4 +43,28 @@ fun saveRouteToFirestore(route: BusRoute, onResult: (Boolean) -> Unit) {
         .set(routeData)
         .addOnSuccessListener { onResult(true) }
         .addOnFailureListener { onResult(false) }
+
 }
+// 🔥 Función para guardar un incidente reportado
+fun reportIncidentToFirestore(
+    routeId: String,
+    description: String,
+    location: LatLng?,
+    onResult: (Boolean) -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val incidentData = hashMapOf(
+        "routeId" to routeId,
+        "description" to description,
+        "timestamp" to System.currentTimeMillis(),
+        "location" to location?.let {
+            mapOf("lat" to it.latitude, "lng" to it.longitude)
+        }
+    )
+
+    db.collection("incidents")
+        .add(incidentData)
+        .addOnSuccessListener { onResult(true) }
+        .addOnFailureListener { onResult(false) }
+}
+

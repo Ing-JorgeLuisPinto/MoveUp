@@ -107,7 +107,7 @@ fun MainMenuScreen(
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF9800)
+                containerColor = Color(0xFF2196F3)
             ),
             shape = RoundedCornerShape(12.dp)
         ) {

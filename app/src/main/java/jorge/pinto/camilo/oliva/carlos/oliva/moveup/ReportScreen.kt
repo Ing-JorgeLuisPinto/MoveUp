@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.maps.model.LatLng
+import jorge.pinto.camilo.oliva.carlos.oliva.moveup.reportIncidentToFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +46,7 @@ fun ReportScreen(onNavigateBack: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFF9800)
+                    containerColor = Color(0xFF2196F3)
                 )
             )
         }
@@ -189,7 +191,17 @@ fun ReportScreen(onNavigateBack: () -> Unit) {
                             Toast.makeText(context, "Selecciona un tipo de problema", Toast.LENGTH_SHORT).show()
                         }
                         else -> {
-                            showSuccessDialog = true
+                            reportIncidentToFirestore(
+                                routeId = selectedRoute,
+                                description = if (description.isNotEmpty()) description else selectedReportType!!.description,
+                                location = null
+                            ) { success ->
+                                if (success) {
+                                    showSuccessDialog = true
+                                } else {
+                                    Toast.makeText(context, "Error al enviar el reporte", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                     }
                 },
@@ -197,7 +209,7 @@ fun ReportScreen(onNavigateBack: () -> Unit) {
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF9800)
+                    containerColor = Color(0xFF2196F3)
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -258,7 +270,7 @@ private fun ReportTypeCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFFFFE0B2) else Color.White
+            containerColor = if (isSelected) Color(0xFF2196F3) else Color.White
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isSelected) 8.dp else 2.dp
@@ -279,7 +291,7 @@ private fun ReportTypeCard(
                 Icon(
                     imageVector = reportType.icon,
                     contentDescription = null,
-                    tint = if (isSelected) Color(0xFFFF9800) else Color.Gray,
+                    tint = if (isSelected) Color.White else Color.Gray,
                     modifier = Modifier.size(32.dp)
                 )
                 Column {
@@ -287,12 +299,12 @@ private fun ReportTypeCard(
                         text = reportType.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color(0xFFFF9800) else Color.Black
+                        color = if (isSelected) Color.White else Color.Black
                     )
                     Text(
                         text = reportType.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = if (isSelected) Color.White.copy(alpha = 0.7f) else Color.Gray
                     )
                 }
             }
@@ -301,7 +313,7 @@ private fun ReportTypeCard(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Seleccionado",
-                    tint = Color(0xFFFF9800),
+                    tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -340,3 +352,4 @@ enum class ReportType(
         Icons.Default.Info
     )
 }
+
