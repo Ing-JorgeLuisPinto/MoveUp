@@ -1,5 +1,7 @@
 package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
+import android.content.Intent
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,7 +25,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 @Composable
 fun DriverDashboardScreen(
     onLogout: () -> Unit,
-    onNavigateToReport: () -> Unit // <-- ¡AGREGADO! Función para navegar a reportes
+    onNavigateToReport: () -> Unit,
+    onNavigateToRoute: () -> Unit, // <-- ¡NUEVO PARÁMETRO!
+    onNavigateToHistory: () -> Unit, // <-- ¡NUEVO PARÁMETRO!
+    onNavigateToSettings: () -> Unit // <-- ¡NUEVO PARÁMETRO!
 ) {
     val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -40,14 +45,34 @@ fun DriverDashboardScreen(
     val db = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid
 
+    // Función para iniciar/detener el servicio de ubicación
+    fun toggleLocationService(activate: Boolean) {
+        val serviceIntent = Intent(context, LocationService::class.java)
+
+        if (activate) {
+            serviceIntent.action = "START_LOCATION_SERVICE"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+            Toast.makeText(context, "Rastreo GPS iniciado", Toast.LENGTH_SHORT).show()
+        } else {
+            serviceIntent.action = "STOP_LOCATION_SERVICE"
+            context.stopService(serviceIntent)
+            Toast.makeText(context, "Rastreo GPS detenido", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
     LaunchedEffect(userId) {
         if (userId != null) {
             db.collection("drivers").document(userId).get()
                 .addOnSuccessListener { document ->
                     if (document != null) {
-                        fullName = document.getString("fullName") ?: ""
-                        busNumber = document.getString("busNumber") ?: ""
-                        routeAssigned = document.getString("routeAssigned") ?: ""
+                        fullName = document.getString("fullName") ?: "Conductor Desconocido"
+                        busNumber = document.getString("busNumber") ?: "N/A"
+                        routeAssigned = document.getString("routeAssigned") ?: "N/A"
                     }
                     isLoading = false
                 }
@@ -127,11 +152,7 @@ fun DriverDashboardScreen(
                             checked = isServiceActive,
                             onCheckedChange = {
                                 isServiceActive = it
-                                Toast.makeText(
-                                    context,
-                                    if (it) "Servicio iniciado" else "Servicio detenido",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                toggleLocationService(it) // <-- ¡CONEXIÓN AL SERVICIO!
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
@@ -181,25 +202,25 @@ fun DriverDashboardScreen(
                         icon = Icons.Default.Map,
                         title = "Mi Ruta",
                         description = "Ver ruta asignada",
-                        onClick = { Toast.makeText(context, "Mi Ruta", Toast.LENGTH_SHORT).show() }
+                        onClick = onNavigateToRoute // <-- ¡CONECTADO!
                     )
                     DashboardOption(
                         icon = Icons.Default.Warning,
                         title = "Reportes",
                         description = "Reportar incidentes",
-                        onClick = onNavigateToReport // <-- ¡USO DE LA FUNCIÓN DE NAVEGACIÓN!
+                        onClick = onNavigateToReport // <-- ¡CONECTADO!
                     )
                     DashboardOption(
                         icon = Icons.Default.History,
                         title = "Historial",
                         description = "Ver historial de viajes",
-                        onClick = { Toast.makeText(context, "Historial", Toast.LENGTH_SHORT).show() }
+                        onClick = onNavigateToHistory // <-- ¡CONECTADO!
                     )
                     DashboardOption(
                         icon = Icons.Default.Settings,
                         title = "Configuración",
                         description = "Ajustes de la cuenta",
-                        onClick = { Toast.makeText(context, "Configuración", Toast.LENGTH_SHORT).show() }
+                        onClick = onNavigateToSettings // <-- ¡CONECTADO!
                     )
                 }
             }
@@ -233,6 +254,7 @@ fun DriverDashboardScreen(
     }
 }
 
+// Funciones auxiliares (mantenerlas fuera del Composable principal)
 @Composable
 private fun InfoRow(
     icon: ImageVector,

@@ -108,7 +108,7 @@ fun AppNavigation() {
             )
         }
 
-        // Driver Dashboard
+        // Driver Dashboard (Punto de conexión central)
         composable("driver_dashboard") {
             DriverDashboardScreen(
                 onLogout = {
@@ -116,13 +116,37 @@ fun AppNavigation() {
                         popUpTo("driver_dashboard") { inclusive = true }
                     }
                 },
-                onNavigateToReport = { navController.navigate("driver_report") } // <-- ¡RUTA AÑADIDA!
+                onNavigateToReport = { navController.navigate("driver_report") },
+                onNavigateToRoute = { navController.navigate("driver_route") },
+                onNavigateToHistory = { navController.navigate("driver_history") },
+                onNavigateToSettings = { navController.navigate("driver_settings") }
             )
         }
 
-        // Driver Report Screen (Conductor) <-- ¡NUEVA RUTA!
+        // Driver Report Screen
         composable("driver_report") {
             DriverReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Driver Route Screen
+        composable("driver_route") {
+            DriverRouteScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Driver History Screen
+        composable("driver_history") {
+            DriverHistoryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Driver Settings Screen
+        composable("driver_settings") {
+            DriverSettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
