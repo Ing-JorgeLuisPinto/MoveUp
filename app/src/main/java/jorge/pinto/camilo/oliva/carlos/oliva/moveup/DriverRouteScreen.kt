@@ -1,19 +1,24 @@
 package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-// Importar la versión AutoMirrored para evitar el aviso de depreciación
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier // <-- Asegúrate de que este import esté presente
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp // <-- Asegúrate de que este import esté presente
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -22,43 +27,53 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.compose.*
 import com.google.android.gms.maps.model.LatLng
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.shouldShowRationale
 
 
-// LatLng por defecto (Centro de Bucaramanga)
 val BUCARAMANGA_CENTER = LatLng(7.1195, -73.1162)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun DriverRouteScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    var routeAssignedId by remember { mutableStateOf<String?>(null) }
     var busRouteData by remember { mutableStateOf<BusRoute?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isServiceStarted by remember { mutableStateOf(false) }
+    var isMapLoaded by remember { mutableStateOf(false) }
 
-    // Estado del mapa y la cámara
+    // Estado de permiso
+    val locationPermissionState = rememberPermissionState(
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
+
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(BUCARAMANGA_CENTER, 12f)
     }
 
-    // Cargar la ruta asignada del conductor
+    // ✅ CARGA DE RUTA DESDE FIRESTORE
     LaunchedEffect(userId) {
         if (userId != null) {
             db.collection("drivers").document(userId).get()
                 .addOnSuccessListener { document ->
-                    val routeId = document.getString("routeAssigned")
-                    routeAssignedId = routeId
+                    val assignedValue = document.getString("routeAssigned")
+                    var route: BusRoute? = null
+                    if (assignedValue != null) {
+                        // Buscar por ID (ej. "4")
+                        route = getRouteById(assignedValue)
 
-                    if (routeId != null) {
-                        val route = getRouteById(routeId)
-                        busRouteData = route
-
-                        // Mover la cámara a la primera parada de la ruta
-                        val initialPosition = route?.pathPoints?.firstOrNull() ?: BUCARAMANGA_CENTER
-                        cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(initialPosition, 14f))
+                        // Si no se encuentra, buscar por Number (ej. "R4")
+                        if (route == null) {
+                            route = getAllRoutes().find { it.number == assignedValue }
+                        }
                     }
+                    busRouteData = route
                     isLoading = false
                 }
                 .addOnFailureListener {
@@ -67,6 +82,44 @@ fun DriverRouteScreen(onNavigateBack: () -> Unit) {
                 }
         } else {
             isLoading = false
+        }
+    }
+
+    // ✅ MOVER CÁMARA SOLO CUANDO EL MAPA ESTÉ LISTO
+    LaunchedEffect(busRouteData, isMapLoaded) {
+        if (busRouteData != null && isMapLoaded) {
+            try {
+                val initialPosition = busRouteData!!.pathPoints.firstOrNull() ?: BUCARAMANGA_CENTER
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngZoom(initialPosition, 14f),
+                    durationMs = 1000
+                )
+            } catch (e: Exception) {
+                // Silenciar errores de inicialización
+            }
+        }
+    }
+
+    // INICIO DEL SERVICIO DE UBICACIÓN
+    LaunchedEffect(busRouteData, locationPermissionState.status.isGranted) {
+        if (busRouteData != null && locationPermissionState.status.isGranted && !isServiceStarted) {
+            val serviceIntent = Intent(context, LocationService::class.java).apply {
+                action = "START_LOCATION_SERVICE"
+            }
+            context.startService(serviceIntent)
+            isServiceStarted = true
+        }
+    }
+
+    // DETENER EL SERVICIO
+    DisposableEffect(Unit) {
+        onDispose {
+            if (isServiceStarted) {
+                val serviceIntent = Intent(context, LocationService::class.java).apply {
+                    action = "STOP_LOCATION_SERVICE"
+                }
+                context.stopService(serviceIntent)
+            }
         }
     }
 
@@ -95,58 +148,147 @@ fun DriverRouteScreen(onNavigateBack: () -> Unit) {
                         CircularProgressIndicator(color = Color(0xFF2196F3))
                     }
                 }
-                busRouteData != null -> {
-                    // Tarjeta de información de la ruta
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "${busRouteData!!.number}: ${busRouteData!!.name}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = busRouteData!!.getRouteColor()
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text("Origen: ${busRouteData!!.origin} - Destino: ${busRouteData!!.destination}", style = MaterialTheme.typography.bodyMedium)
-                            Text("Paradas: ${busRouteData!!.stops.size} | Duración: ${busRouteData!!.duration}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                        }
-                    }
-
-                    // ** MAPA DE GOOGLE MAPS COMPOSE **
-                    GoogleMap(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp).padding(bottom = 16.dp),
+                // Si no hay permisos
+                !locationPermissionState.status.isGranted -> {
+                    PermissionRequiredScreen(
+                        context = context,
+                        permissionState = locationPermissionState
+                    )
+                }
+                // Si hay ruta y hay permisos, muestra el mapa
+                busRouteData != null && locationPermissionState.status.isGranted -> {
+                    RouteMapContent(
+                        busRouteData = busRouteData!!,
                         cameraPositionState = cameraPositionState,
-                        properties = MapProperties(isMyLocationEnabled = true)
-                    ) {
-                        // 1. DIBUJAR LA RUTA
-                        Polyline(
-                            points = busRouteData!!.pathPoints,
-                            color = busRouteData!!.getRouteColor(),
-                            width = 10f,
-                            jointType = JointType.ROUND
-                        )
-
-                        // 2. MARCADORES DE PARADAS
-                        busRouteData!!.stops.forEach { stop ->
-                            Marker(
-                                state = rememberMarkerState(position = stop.location),
-                                title = "Parada ${stop.order}: ${stop.name}",
-                                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)
+                        onMapLoaded = { isMapLoaded = true }
+                    )
+                }
+                // Si no se encuentra la ruta
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "No tienes una ruta asignada",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Contacta al administrador para que te asigne una ruta",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Ruta asignada no encontrada o no válida.", color = Color.Gray, style = MaterialTheme.typography.titleLarge)
-                    }
+            }
+        }
+    }
+}
+
+// ================================================================
+// COMPONENTES DE VISTA SEPARADOS
+// ================================================================
+
+@Composable
+fun RouteMapContent(
+    busRouteData: BusRoute,
+    cameraPositionState: CameraPositionState,
+    onMapLoaded: () -> Unit
+) {
+    GoogleMap(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 16.dp
+            ),
+        cameraPositionState = cameraPositionState,
+        properties = MapProperties(isMyLocationEnabled = true),
+        onMapLoaded = onMapLoaded  // ✅ CALLBACK CUANDO EL MAPA SE CARGA
+    ) {
+        // 1. DIBUJAR LA RUTA
+        Polyline(
+            points = busRouteData.pathPoints,
+            color = busRouteData.routeColor,
+            width = 10f,
+            jointType = JointType.ROUND
+        )
+
+        // 2. MARCADORES DE PARADAS
+        busRouteData.stops.forEach { stop ->
+            Marker(
+                state = rememberMarkerState(position = stop.location),
+                title = "Parada ${stop.order}: ${stop.name}",
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)
+            )
+        }
+    }
+}
+
+fun openAppSettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", context.packageName, null)
+    ).apply {
+        addCategory(Intent.CATEGORY_DEFAULT)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(intent)
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun PermissionRequiredScreen(
+    context: Context,
+    permissionState: PermissionState
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "📍 Permiso de Ubicación Necesario",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Para ver tu ruta y transmitir tu ubicación en tiempo real, necesitamos acceso a tu ubicación precisa.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(24.dp))
+
+                Button(
+                    onClick = {
+                        if (permissionState.status.shouldShowRationale) {
+                            openAppSettings(context)
+                        } else {
+                            permissionState.launchPermissionRequest()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (permissionState.status.shouldShowRationale) "Abrir Ajustes" else "Conceder Permiso")
                 }
             }
         }

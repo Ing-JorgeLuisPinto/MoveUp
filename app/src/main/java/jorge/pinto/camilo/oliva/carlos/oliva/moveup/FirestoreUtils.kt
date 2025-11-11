@@ -2,6 +2,9 @@ package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.android.gms.maps.model.LatLng
+// 🔥 CORRECCIÓN: Importar las clases BusRoute y BusStop definidas en RouteData.kt
+import jorge.pinto.camilo.oliva.carlos.oliva.moveup.BusRoute
+import jorge.pinto.camilo.oliva.carlos.oliva.moveup.BusStop
 
 // 🔥 Función para guardar una ruta en Firestore
 fun saveRouteToFirestore(route: BusRoute, onResult: (Boolean) -> Unit) {
@@ -67,4 +70,3 @@ fun reportIncidentToFirestore(
         .addOnSuccessListener { onResult(true) }
         .addOnFailureListener { onResult(false) }
 }
-

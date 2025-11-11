@@ -1,5 +1,6 @@
 package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -14,6 +15,9 @@ import com.google.android.gms.location.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.concurrent.TimeUnit
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.google.firebase.Timestamp
 
 class LocationService : Service() {
 
@@ -46,8 +50,13 @@ class LocationService : Service() {
         return START_STICKY
     }
 
-    @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
+        // CORRECCIÓN DE SEGURIDAD: VERIFICACIÓN DE PERMISOS
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
+        @SuppressLint("MissingPermission")
         val locationRequest = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
             TimeUnit.SECONDS.toMillis(10) // Frecuencia de actualización: 10 segundos
@@ -64,6 +73,7 @@ class LocationService : Service() {
             }
         }
 
+        @SuppressLint("MissingPermission")
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
             locationCallback,
@@ -72,26 +82,26 @@ class LocationService : Service() {
     }
 
     private fun stopLocationUpdates() {
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        if (::locationCallback.isInitialized) {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
     }
 
     private fun uploadLocationToFirestore(location: Location) {
         val userId = auth.currentUser?.uid ?: return
 
-        // En un proyecto real, cargarías el busNumber y routeId del perfil del conductor.
-        // Por simplicidad, se puede obtener desde Firebase en el onStartCommand si es necesario.
+        // NOTA: Se debe obtener el busNumber real del perfil del conductor, no usar un valor fijo como "16"
         val locationData = hashMapOf(
             "latitude" to location.latitude,
             "longitude" to location.longitude,
-            "timestamp" to com.google.firebase.Timestamp.now(),
+            "timestamp" to Timestamp.now(),
             "driverId" to userId,
-            "busNumber" to "16" // Usar valor real del conductor
+            "busNumber" to "16"
         )
 
-        // Se usa el ID del conductor como nombre del documento para que la ubicación siempre se actualice
         db.collection("busLocations").document(userId)
             .set(locationData)
-            .addOnFailureListener { } // Manejo de errores simplificado
+            .addOnFailureListener { }
     }
 
     private fun createNotificationChannel() {
@@ -110,7 +120,6 @@ class LocationService : Service() {
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Servicio de Bus Activo")
             .setContentText("Tu ubicación se está transmitiendo en tiempo real.")
-            // Asegúrate de que este recurso exista en tu carpeta res/drawable
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOngoing(true)
