@@ -22,7 +22,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverDashboardScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToReport: () -> Unit // <-- ¡AGREGADO! Función para navegar a reportes
 ) {
     val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -186,7 +187,7 @@ fun DriverDashboardScreen(
                         icon = Icons.Default.Warning,
                         title = "Reportes",
                         description = "Reportar incidentes",
-                        onClick = { Toast.makeText(context, "Reportes", Toast.LENGTH_SHORT).show() }
+                        onClick = onNavigateToReport // <-- ¡USO DE LA FUNCIÓN DE NAVEGACIÓN!
                     )
                     DashboardOption(
                         icon = Icons.Default.History,

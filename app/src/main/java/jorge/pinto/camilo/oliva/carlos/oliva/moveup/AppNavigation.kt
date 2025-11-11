@@ -76,7 +76,7 @@ fun AppNavigation() {
             )
         }
 
-        // Report Screen
+        // Report Screen (Usuario normal)
         composable("report") {
             ReportScreen(
                 onNavigateBack = { navController.popBackStack() }
@@ -115,7 +115,15 @@ fun AppNavigation() {
                     navController.navigate("main") {
                         popUpTo("driver_dashboard") { inclusive = true }
                     }
-                }
+                },
+                onNavigateToReport = { navController.navigate("driver_report") } // <-- ¡RUTA AÑADIDA!
+            )
+        }
+
+        // Driver Report Screen (Conductor) <-- ¡NUEVA RUTA!
+        composable("driver_report") {
+            DriverReportScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
