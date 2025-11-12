@@ -44,7 +44,7 @@ fun DriverRegisterScreen(
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
 
-    val routes = listOf("R1", "R2", "R3", "R4", "R5")
+    val routes = listOf("ruta_1", "ruta_2", "ruta_3", "ruta_4")
 
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()

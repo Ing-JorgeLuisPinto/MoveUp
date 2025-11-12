@@ -22,21 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.JointType
-import com.google.android.gms.maps.model.LatLng
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
+import com.google.android.gms.maps.model.*
+import com.google.accompanist.permissions.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.compose.*
-import org.xmlpull.v1.XmlPullParser
 import android.util.Xml
-import java.io.InputStream
+import org.xmlpull.v1.XmlPullParser
 
 val BUCARAMANGA_CENTER = LatLng(7.1195, -73.1162)
 
@@ -57,39 +49,34 @@ fun DriverRouteScreen(onNavigateBack: () -> Unit) {
         position = CameraPosition.fromLatLngZoom(BUCARAMANGA_CENTER, 12f)
     }
 
-    // 🔹 Selector de archivo (.kml o .xml)
-    val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val route = loadRouteFromFile(context, it)
-            if (route != null) {
-                busRouteData = route
-                Toast.makeText(context, "Ruta cargada desde archivo", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Error al leer el archivo", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    // 🔥 Cargar ruta asignada desde Firestore
+    // 🔥 Cargar ruta asignada desde Firestore o desde archivos locales .kml
     LaunchedEffect(userId) {
         if (userId != null) {
             db.collection("drivers").document(userId).get()
                 .addOnSuccessListener { document ->
                     val assignedRoute = document.getString("routeAssigned")
+
                     if (assignedRoute != null) {
-                        db.collection("routes").document(assignedRoute).get()
-                            .addOnSuccessListener { routeDoc ->
-                                val route = routeDoc.toObject(BusRoute::class.java)
-                                busRouteData = route
-                                isLoading = false
-                            }
-                            .addOnFailureListener {
-                                Toast.makeText(context, "Error al cargar ruta asignada", Toast.LENGTH_SHORT).show()
-                                isLoading = false
-                            }
+                        // Buscar la ruta .kml correspondiente
+                        val routeResourceId = when (assignedRoute.lowercase()) {
+                            "ruta_1" -> R.raw.ruta_1
+                            "ruta_2" -> R.raw.ruta_2
+                            "ruta_3" -> R.raw.ruta_3
+                            "ruta_4" -> R.raw.ruta_4
+                            "ruta_5" -> R.raw.ruta_5
+                            else -> null
+                        }
+
+                        if (routeResourceId != null) {
+                            val route = parseKML(context.resources.openRawResource(routeResourceId))
+                            busRouteData = route.copy(name = assignedRoute.replace("_", " ").uppercase())
+                            isLoading = false
+                        } else {
+                            Toast.makeText(context, "Ruta no encontrada localmente", Toast.LENGTH_SHORT).show()
+                            isLoading = false
+                        }
                     } else {
+                        Toast.makeText(context, "No tienes una ruta asignada", Toast.LENGTH_SHORT).show()
                         isLoading = false
                     }
                 }
@@ -149,11 +136,6 @@ fun DriverRouteScreen(onNavigateBack: () -> Unit) {
                         )
                     }
                 },
-                actions = {
-                    TextButton(onClick = { filePicker.launch("*/*") }) {
-                        Text("Cargar Archivo", color = Color.White)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF2196F3))
             )
         }
@@ -175,23 +157,9 @@ fun DriverRouteScreen(onNavigateBack: () -> Unit) {
 }
 
 // ================================================================
-// 🔹 PARSEO DE ARCHIVOS .KML Y .XML
+// 🔹 PARSEO DE ARCHIVOS .KML
 // ================================================================
-fun loadRouteFromFile(context: Context, uri: Uri): BusRoute? {
-    return try {
-        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-        when {
-            uri.toString().endsWith(".kml", true) -> parseKML(inputStream!!)
-            uri.toString().endsWith(".xml", true) -> parseXML(inputStream!!)
-            else -> null
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
-    }
-}
-
-fun parseKML(inputStream: InputStream): BusRoute {
+fun parseKML(inputStream: java.io.InputStream): BusRoute {
     val points = mutableListOf<LatLng>()
     val xml = Xml.newPullParser()
     xml.setInput(inputStream, null)
@@ -214,23 +182,6 @@ fun parseKML(inputStream: InputStream): BusRoute {
         eventType = xml.next()
     }
     return BusRoute("Ruta desde archivo KML", "KML", points, Color(0xFF1565C0).hashCode())
-}
-
-fun parseXML(inputStream: InputStream): BusRoute {
-    val points = mutableListOf<LatLng>()
-    val xml = Xml.newPullParser()
-    xml.setInput(inputStream, null)
-    var eventType = xml.eventType
-
-    while (eventType != XmlPullParser.END_DOCUMENT) {
-        if (eventType == XmlPullParser.START_TAG && xml.name == "point") {
-            val lat = xml.getAttributeValue(null, "lat")?.toDoubleOrNull()
-            val lng = xml.getAttributeValue(null, "lng")?.toDoubleOrNull()
-            if (lat != null && lng != null) points.add(LatLng(lat, lng))
-        }
-        eventType = xml.next()
-    }
-    return BusRoute("Ruta desde archivo XML", "XML", points, Color(0xFF4CAF50).hashCode())
 }
 
 // ================================================================

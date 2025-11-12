@@ -53,6 +53,15 @@ fun getAllRoutes(): List<BusRoute> {
     )
 }
 
+// 🔹 Esta función ahora soporta "ruta_1", "R1" o "1" sin importar el formato
 fun getRouteById(id: String): BusRoute? {
-    return getAllRoutes().find { it.number == id }
+    val normalizedId = when (id.lowercase()) {
+        "ruta_1", "r1", "1" -> "1"
+        "ruta_2", "r2", "2" -> "2"
+        "ruta_3", "r3", "3" -> "3"
+        "ruta_4", "r4", "4" -> "4"
+        "ruta_5", "r5", "5" -> "5"
+        else -> id
+    }
+    return getAllRoutes().find { it.number == normalizedId }
 }
