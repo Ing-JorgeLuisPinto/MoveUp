@@ -2,52 +2,80 @@ package jorge.pinto.camilo.oliva.carlos.oliva.moveup
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.android.gms.maps.model.LatLng
-// 🔥 CORRECCIÓN: Importar las clases BusRoute y BusStop definidas en RouteData.kt
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.BusRoute
-import jorge.pinto.camilo.oliva.carlos.oliva.moveup.BusStop
 
-// 🔥 Función para guardar una ruta en Firestore
-fun saveRouteToFirestore(route: BusRoute, onResult: (Boolean) -> Unit) {
-    val db = FirebaseFirestore.getInstance()
+import android.content.Context
+import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
 
-    // Firestore no admite directamente objetos LatLng, así que los convertimos a mapas
-    val pathPointsMap = route.pathPoints.map {
-        mapOf("lat" to it.latitude, "lng" to it.longitude)
-    }
+object FirestoreUtils {
 
-    val stopsMap = route.stops.map { stop ->
-        mapOf(
-            "id" to stop.id,
-            "name" to stop.name,
-            "lat" to stop.location.latitude,
-            "lng" to stop.location.longitude,
-            "order" to stop.order
+    private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+
+    fun saveRoute(context: Context, busRoute: BusRoute) {
+        val userId = auth.currentUser?.uid ?: return
+
+        val routeData = hashMapOf(
+            "name" to busRoute.name,
+            "number" to busRoute.number,
+            "color" to busRoute.routeColor
         )
+
+        db.collection("users")
+            .document(userId)
+            .collection("saved_routes")
+            .document(busRoute.number)
+            .set(routeData)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Ruta guardada correctamente", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Error al guardar: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
-    val routeData = hashMapOf(
-        "id" to route.id,
-        "number" to route.number,
-        "name" to route.name,
-        "company" to route.company,
-        "origin" to route.origin,
-        "destination" to route.destination,
-        "duration" to route.duration,
-        "frequency" to route.frequency,
-        "schedule" to route.schedule,
-        "fare" to route.fare,
-        "status" to route.status,
-        "pathPoints" to pathPointsMap,
-        "stops" to stopsMap
-    )
+    fun getSavedRoutes(
+        onSuccess: (List<BusRoute>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val userId = auth.currentUser?.uid ?: return
 
-    db.collection("saved_routes")
-        .document(route.id)
-        .set(routeData)
-        .addOnSuccessListener { onResult(true) }
-        .addOnFailureListener { onResult(false) }
+        db.collection("users")
+            .document(userId)
+            .collection("saved_routes")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val routes = snapshot.documents.mapNotNull { doc ->
+                    BusRoute(
+                        name = doc.getString("name") ?: "",
+                        number = doc.getString("number") ?: "",
+                        routeColor = (doc.getLong("color") ?: 0xFF1565C0).toInt()
+                    )
+                }
+                onSuccess(routes)
+            }
+            .addOnFailureListener { e ->
+                onFailure(e)
+            }
+    }
 
+    fun deleteRoute(context: Context, routeNumber: String) {
+        val userId = auth.currentUser?.uid ?: return
+
+        db.collection("users")
+            .document(userId)
+            .collection("saved_routes")
+            .document(routeNumber)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(context, "Ruta eliminada correctamente", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Error al eliminar: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
 }
+
 // 🔥 Función para guardar un incidente reportado
 fun reportIncidentToFirestore(
     routeId: String,

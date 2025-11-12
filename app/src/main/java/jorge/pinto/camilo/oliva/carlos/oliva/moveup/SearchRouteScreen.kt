@@ -14,7 +14,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+
+data class RouteInfo(
+    val fileName: String = "",
+    val name: String = "",
+    val origin: String = "",
+    val destination: String = "",
+    val duration: String = "",
+    val frequency: String = "",
+    val price: String = "",
+    val service: Boolean = true
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,347 +37,179 @@ fun SearchRouteScreen(
     onNavigateBack: () -> Unit,
     onRouteClick: (String) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    val allRoutes = remember { getAllRoutes() }
-
-    val filteredRoutes = remember(searchQuery) {
-        if (searchQuery.isEmpty()) {
-            allRoutes
-        } else {
-            allRoutes.filter { route ->
-                route.number.contains(searchQuery, ignoreCase = true) ||
-                        route.name.contains(searchQuery, ignoreCase = true) ||
-                        route.origin.contains(searchQuery, ignoreCase = true) ||
-                        route.destination.contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
+    val routes = listOf(
+        RouteInfo("ruta_1", "GALÁN - MODELO - ESTADIO - UIS (INTEGRADA)", "Galán", "UIS", "35 min", "Cada 10 min", "$2,800"),
+        RouteInfo("ruta_2", "CUMBRE - EL CARMEN - TRANSVERSAL - CARRERA 33 - SANTOTO", "La Cumbre", "Santoto", "40 min", "Cada 12 min", "$2,800"),
+        RouteInfo("ruta_3", "BOSCONIA - LOS ANGELES - CHAPINERO - CENTRO - REAL DE MINAS - LA LADRILLERA (INTEGRADA)", "Bosconia", "La Ladrillera", "45 min", "Cada 15 min", "$2,800"),
+        RouteInfo("ruta_4", "LA JOYA - ESTACION SAN MATEO - DON BOSCO (INTEGRADA)", "La Joya", "Don Bosco", "30 min", "Cada 9 min", "$2,800"),
+        RouteInfo("ruta_5", "CRISTAL BAJO - SAN LUIS - DIAMANTE II - ESTACION PROVENZA - CACIQUE - CARRERA 33 - ALVAREZ - BUENAVISTA (INTEGRADA)", "Cristal Bajo", "Buenavista", "50 min", "Cada 20 min", "$2,800")
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Buscar Ruta", color = Color.White) },
+                title = { Text("Buscar Ruta") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2196F3)
+                    containerColor = Color(0xFF1565C0),
+                    titleContentColor = Color.White
                 )
             )
         }
-    ) { paddingValues ->
-        Column(
+    ) { padding ->
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF5F5F5))
+                .padding(padding)
+                .background(Color(0xFFF5F6FA))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Barra de búsqueda
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Buscar por ruta, origen o destino") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Buscar"
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Limpiar"
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFF2196F3),
-                    unfocusedBorderColor = Color.LightGray
-                )
-            )
-
-            // Lista de rutas
-            if (filteredRoutes.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SearchOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.Gray
-                        )
-                        Text(
-                            text = "No se encontraron rutas",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.Gray
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(filteredRoutes) { route ->
-                        RouteCard(
-                            route = route,
-                            onClick = { onRouteClick(route.id) }
-                        )
-                    }
-                }
+            items(routes) { route ->
+                RouteCardFirestore(route = route, onClick = { onRouteClick(route.fileName) })
             }
         }
     }
 }
 
 @Composable
-private fun RouteCard(
-    route: BusRoute,
-    onClick: () -> Unit
-) {
-    var isSaving by remember { mutableStateOf(false) }
-    var saveSuccess by remember { mutableStateOf<Boolean?>(null) }
+fun RouteCardFirestore(route: RouteInfo, onClick: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid ?: "guest"
+
+    var isSaved by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(true) }
+
+    // Leer desde Firestore (callback normal)
+    LaunchedEffect(Unit) {
+        db.collection("users")
+            .document(userId)
+            .collection("saved_routes")
+            .document(route.fileName)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                isSaved = snapshot.exists()
+                loading = false
+            }
+            .addOnFailureListener {
+                loading = false
+            }
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(2.dp),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Encabezado con número de ruta
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF2196F3)
-                ) {
-                    Text(
-                        text = route.number,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                StatusChip(status = route.status)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Origen y destino
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.RadioButtonChecked,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Origen",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = route.origin,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color(0xFFF44336),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Destino",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = route.destination,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Información adicional
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                InfoChip(icon = Icons.Default.Schedule, text = route.duration)
-                InfoChip(icon = Icons.Default.AccessTime, text = route.frequency)
-                InfoChip(icon = Icons.Default.AttachMoney, text = route.fare)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 🔘 Botón de guardar
-            Button(
-                onClick = {
-                    isSaving = true
-                    saveRouteToFirestore(route) { success ->
-                        isSaving = false
-                        saveSuccess = success
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(45.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.BookmarkAdd,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Guardar ruta", color = Color.White)
-                }
-            }
-
-            // ✅ Mensaje visual de confirmación
-            saveSuccess?.let { success ->
-                val message = if (success) "Ruta guardada correctamente" else "Error al guardar ruta"
-                val bgColor = if (success) Color(0xFFD0F0C0) else Color(0xFFFFCDD2)
-                val textColor = if (success) Color(0xFF2E7D32) else Color(0xFFC62828)
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    color = bgColor,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = message,
-                        color = textColor,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        style = MaterialTheme.typography.bodySmall
+                            .background(Color(0xFF1565C0), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "R" + route.fileName.takeLast(1),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (route.service) "En servicio" else "Fuera de servicio",
+                        color = if (route.service) Color(0xFF4CAF50) else Color.Red,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
+
+                if (!loading) {
+                    IconButton(onClick = {
+                        if (isSaved) {
+                            db.collection("users")
+                                .document(userId)
+                                .collection("saved_routes")
+                                .document(route.fileName)
+                                .delete()
+                            isSaved = false
+                        } else {
+                            db.collection("users")
+                                .document(userId)
+                                .collection("saved_routes")
+                                .document(route.fileName)
+                                .set(route)
+                            isSaved = true
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            contentDescription = "Guardar",
+                            tint = if (isSaved) Color(0xFFFFA000) else Color.Gray
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = route.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color(0xFF212121),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            RouteDetails(route)
         }
     }
 }
 
-
 @Composable
-private fun StatusChip(status: String) {
-    val backgroundColor = when (status.lowercase()) {
-        "en servicio" -> Color(0xFFE8F5E9)
-        "demorado" -> Color(0xFFFFF3E0)
-        "fuera de servicio" -> Color(0xFFFFEBEE)
-        else -> Color(0xFFE0E0E0)
+fun RouteDetails(route: RouteInfo) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF4CAF50))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = route.origin, fontSize = 14.sp, color = Color.Gray)
     }
-
-    val textColor = when (status.lowercase()) {
-        "en servicio" -> Color(0xFF4CAF50)
-        "demorado" -> Color(0xFFFF9800)
-        "fuera de servicio" -> Color(0xFFF44336)
-        else -> Color(0xFF757575)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.Flag, contentDescription = null, tint = Color(0xFFE53935))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = route.destination, fontSize = 14.sp, color = Color.Gray)
     }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor
-    ) {
-        Text(
-            text = status,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = textColor
-        )
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        InfoChip(Icons.Default.AccessTime, route.duration)
+        InfoChip(Icons.Default.Refresh, route.frequency)
+        InfoChip(Icons.Default.AttachMoney, route.price)
     }
 }
 
 @Composable
-private fun InfoChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String
-) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = Color(0xFFF5F5F5)
-    ) {
+fun InfoChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Surface(color = Color(0xFFE3F2FD), shape = RoundedCornerShape(8.dp)) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = Color(0xFF2196F3)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF424242)
-            )
+            Icon(icon, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(16.dp))
+            Text(text = text, fontSize = 13.sp, color = Color(0xFF1565C0))
         }
     }
 }

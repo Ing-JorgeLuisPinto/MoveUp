@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MainMenuScreen(
     onNavigateToSearch: () -> Unit,
-    onNavigateToMap: () -> Unit,
+    onNavigateToMap: (String) -> Unit, // 🔹 Recibe el ID o nombre de la ruta KML
     onNavigateToMyRoutes: () -> Unit,
     onNavigateToReport: () -> Unit,
     onNavigateToDriverLogin: () -> Unit
@@ -31,12 +31,12 @@ fun MainMenuScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo
+        // Logo principal
         Icon(
             imageVector = Icons.Default.DirectionsBus,
             contentDescription = "Logo",
             modifier = Modifier.size(80.dp),
-            tint = Color(0xFF2196F3)
+            tint = Color(0xFF1565C0)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -45,18 +45,18 @@ fun MainMenuScreen(
             text = "MoveUp",
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF2196F3)
+            color = Color(0xFF1565C0)
         )
 
         Text(
-            text = "Tu transporte público",
+            text = "Tu transporte público inteligente",
             style = MaterialTheme.typography.bodyLarge,
             color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Grid de opciones 2x2
+        // Opciones del menú (2x2)
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -74,7 +74,8 @@ fun MainMenuScreen(
                 MenuOption(
                     icon = Icons.Default.Map,
                     title = "Ver Mapa",
-                    onClick = onNavigateToMap,
+                    // 🔹 Aquí llamamos la navegación pasando el nombre del archivo KML
+                    onClick = { onNavigateToMap("ruta_1") },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -100,14 +101,14 @@ fun MainMenuScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Botón Portal de Conductores
+        // Botón del portal de conductores
         Button(
             onClick = onNavigateToDriverLogin,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2196F3)
+                containerColor = Color(0xFF1565C0)
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -139,7 +140,7 @@ private fun MenuOption(
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(6.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
@@ -153,7 +154,7 @@ private fun MenuOption(
                 imageVector = icon,
                 contentDescription = title,
                 modifier = Modifier.size(48.dp),
-                tint = Color(0xFF2196F3)
+                tint = Color(0xFF1565C0)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(

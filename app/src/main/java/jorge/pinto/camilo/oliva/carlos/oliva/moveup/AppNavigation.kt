@@ -1,4 +1,5 @@
 package jorge.pinto.camilo.oliva.carlos.oliva.moveup
+
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,7 +15,7 @@ fun AppNavigation() {
         navController = navController,
         startDestination = "splash"
     ) {
-        // Splash Screen
+        // 🔹 Splash
         composable("splash") {
             SplashScreen(
                 onNavigateToMainMenu = {
@@ -25,28 +26,31 @@ fun AppNavigation() {
             )
         }
 
-        // Main Menu
+        // 🔹 Menú Principal
         composable("main") {
             MainMenuScreen(
                 onNavigateToSearch = { navController.navigate("search") },
-                onNavigateToMap = { navController.navigate("map") },
+                onNavigateToMap = { routeName ->
+                    navController.navigate("map/$routeName")
+                },
                 onNavigateToMyRoutes = { navController.navigate("myroutes") },
                 onNavigateToReport = { navController.navigate("report") },
                 onNavigateToDriverLogin = { navController.navigate("driver_login") }
             )
         }
 
-        // Search Route
+        // 🔹 Buscar Ruta
+// 🔹 Buscar Ruta
         composable("search") {
             SearchRouteScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onRouteClick = { routeId ->
-                    navController.navigate("route_detail/$routeId")
+                    navController.navigate("map/$routeId")
                 }
             )
         }
 
-        // Route Detail
+        // 🔹 Pantalla de Detalle (por si la usas más adelante)
         composable(
             route = "route_detail/{routeId}",
             arguments = listOf(navArgument("routeId") { type = NavType.StringType })
@@ -58,32 +62,33 @@ fun AppNavigation() {
             )
         }
 
-        // Map Full Screen
-        composable("map") {
+        // 🔹 Mapa Completo
+        composable(
+            route = "map/{routeName}",
+            arguments = listOf(navArgument("routeName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val routeName = backStackEntry.arguments?.getString("routeName") ?: ""
             MapFullScreen(
                 onNavigateBack = { navController.popBackStack() },
-                selectedRouteId = null
+                selectedRouteId = routeName
             )
         }
 
-        // My Routes
+        // 🔹 Rutas Guardadas
         composable("myroutes") {
             MyRoutesScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onRouteClick = { routeId ->
-                    navController.navigate("route_detail/$routeId")
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Report Screen (Usuario normal)
+        // 🔹 Reporte Usuario
         composable("report") {
             ReportScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Driver Login
+        // 🔹 Login Conductor
         composable("driver_login") {
             DriverLoginScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -96,7 +101,7 @@ fun AppNavigation() {
             )
         }
 
-        // Driver Register
+        // 🔹 Registro Conductor
         composable("driver_register") {
             DriverRegisterScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -108,7 +113,7 @@ fun AppNavigation() {
             )
         }
 
-        // Driver Dashboard (Punto de conexión central)
+        // 🔹 Dashboard Conductor
         composable("driver_dashboard") {
             DriverDashboardScreen(
                 onLogout = {
@@ -123,28 +128,28 @@ fun AppNavigation() {
             )
         }
 
-        // Driver Report Screen
+        // 🔹 Reporte Conductor
         composable("driver_report") {
             DriverReportScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Driver Route Screen
+        // 🔹 Ruta Conductor
         composable("driver_route") {
             DriverRouteScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Driver History Screen
+        // 🔹 Historial Conductor
         composable("driver_history") {
             DriverHistoryScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Driver Settings Screen
+        // 🔹 Configuración Conductor
         composable("driver_settings") {
             DriverSettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
@@ -152,3 +157,4 @@ fun AppNavigation() {
         }
     }
 }
+
